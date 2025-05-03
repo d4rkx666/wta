@@ -1,8 +1,9 @@
 import { Timestamp } from "firebase/firestore";
+import { Amenity } from "./amenity";
 
-export type Amenity = {
-  name: string;
-  available: boolean;
+type Images = {
+  id: string;
+  url: string;
 }
 
 export type Room= {
@@ -15,7 +16,7 @@ export type Room= {
   price: number;
   furnished: boolean;
   roommates: number;
-  images: [];
+  images: Images[];
   available: boolean;
   date_availability: Timestamp;
   private_washroom: boolean;

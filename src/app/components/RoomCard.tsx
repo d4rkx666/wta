@@ -13,7 +13,7 @@ export function RoomCard({room}: {room: Room})
     <div className="bg-white rounded-xl shadow-md overflow-hidden transition transform hover:-translate-y-2">
       <div className="relative w-full h-60">
         <Image 
-          src={"https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60"}
+          src={room.thumbnail || room.images[0].url}
           alt={room.title}
           fill
           className="w-full h-full object-cover"

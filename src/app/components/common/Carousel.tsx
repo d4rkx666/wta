@@ -8,8 +8,9 @@ import Image from 'next/image';
 import 'swiper/css';
 import 'swiper/css/pagination';
 import './carousel.css'; // We'll create this next
+import { Room } from '@/types/room';
 
-export default function Carousel() {
+export default function Carousel({room}:{room?: Room}) {
   const carouselImages = [
     '/images/slider/1.jpg',
     '/images/slider/2.jpg',
@@ -34,19 +35,36 @@ export default function Carousel() {
       loop={true}
       className="h-screen w-full"
     >
-      {carouselImages.map((src, index) => (
-        <SwiperSlide key={index}>
-          <div className="relative h-full w-full">
-            <Image
-              src={src}
-              alt={`Room ${index + 1}`}
-              fill
-              className="object-cover"
-              priority={index === 0}
-            />
-          </div>
-        </SwiperSlide>
-      ))}
+      {room ? (
+        room.images.map((src, index) => (
+          <SwiperSlide key={index}>
+            <div className="relative h-full w-full">
+              <Image
+                src={src.url}
+                alt={`Room ${index + 1}`}
+                fill
+                className="object-cover"
+                priority={index === 0}
+              />
+            </div>
+          </SwiperSlide>
+        ))
+      ):(
+        carouselImages.map((src, index) => (
+          <SwiperSlide key={index}>
+            <div className="relative h-full w-full">
+              <Image
+                src={src}
+                alt={`Room ${index + 1}`}
+                fill
+                className="object-cover"
+                priority={index === 0}
+              />
+            </div>
+          </SwiperSlide>
+        ))
+      )
+    }
     </Swiper>
   );
 }

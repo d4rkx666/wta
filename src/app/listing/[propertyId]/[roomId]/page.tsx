@@ -61,7 +61,7 @@ Utilities (electricity, water, heat) and high-speed internet are included in the
         {/* Room Gallery */}
         <div className="bg-gray-100">
           <div className="container mx-auto px-4 py-8">
-            <Carousel/>
+            <Carousel room={room}/>
           </div>
         </div>
         

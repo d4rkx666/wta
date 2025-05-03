@@ -1,9 +1,5 @@
+import { Amenity } from "./amenity";
 import { Room } from "./room";
-
-export type GlobalAmenities = {
-  name: string;
-  available: boolean;
-};
 
 export type Property = {
   id: string;
@@ -14,5 +10,5 @@ export type Property = {
   num_shared_washroom: number;
   url_map: string;
   rooms: Room[];
-  global_amenities: GlobalAmenities[]
+  global_amenities: Amenity[]
 };
