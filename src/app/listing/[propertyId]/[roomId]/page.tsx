@@ -4,55 +4,25 @@ import Carousel from "../../../components/common/Carousel"
 import { useDetailRoom } from "@/hooks/useDetailRoom";
 import Loader from "@/app/components/common/Loader";
 import Link from "next/link";
+import { useLiveRooms } from "@/hooks/useLiveRooms";
+import { useEffect, useState } from "react";
 
 
 const RoomDetail = () => {
   const { propertyId, roomId }= useParams<{propertyId: string;roomId: string;}>();
-  const {data, loading} = useDetailRoom(propertyId, roomId)
+  const {roomData, propertyData, loading} = useDetailRoom(propertyId, roomId)
+  const {data: roomCount, loading: loadingRooms} = useLiveRooms()
+  const [roommatesCount, setRoommatesCount] = useState(0);
 
-  if (loading || !data) {
+  useEffect(()=>{
+    const roommates = roomCount.filter(r => r.id_property === propertyData.id).length
+    setRoommatesCount(roommates);
+  },[roomCount, propertyData, loading, loadingRooms])
+
+  if (loading || loadingRooms) {
     return <Loader />;
   }
-
-  // Mock data - in a real app, you'd fetch this based on the ID
-  const room = data;
-  /*const room = {
-    id:  '1',
-    title: "Modern Downtown Room with Mountain View",
-    location: "Yaletown, Vancouver",
-    price: 1200,
-    availability: "2023-06-15",
-    privateWashroom: true,
-    size: "12m²",
-    roommates: 2,
-    description: `This bright and spacious room in a modern downtown condo offers stunning mountain views and convenient access to all amenities. The building features a gym, rooftop patio, and 24/7 security.
-
-The room comes fully furnished with a queen-sized bed, desk, chair, and ample storage space. You'll be sharing the apartment with two friendly professionals who work regular hours.
-
-Located in the heart of Yaletown, you're steps away from the best restaurants, cafes, and shopping in Vancouver. The Skytrain and multiple bus routes are just a 5-minute walk away, making commuting a breeze.
-
-Utilities (electricity, water, heat) and high-speed internet are included in the rent. Laundry facilities are available in the building.`,
-    amenities: [
-      "Fully furnished",
-      "Utilities included",
-      "High-speed internet",
-      "Gym access",
-      "Rooftop patio",
-      "Laundry facilities",
-      "24/7 security",
-      "Bike storage"
-    ],
-    images: [
-      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1513694203232-719a280e022f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1493809842364-78817add7ffb?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80"
-    ],
-    coordinates: {
-      lat: 49.2827,
-      lng: -123.1207
-    }
-  };*/
+  console.log(roomData)
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -61,7 +31,7 @@ Utilities (electricity, water, heat) and high-speed internet are included in the
         {/* Room Gallery */}
         <div className="bg-gray-100">
           <div className="container mx-auto px-4 py-8">
-            <Carousel room={room}/>
+            <Carousel room={roomData}/>
           </div>
         </div>
         
@@ -72,8 +42,8 @@ Utilities (electricity, water, heat) and high-speed internet are included in the
             <div className="lg:w-2/3">
               {/* Title and Badge */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-                <h1 className="text-3xl font-bold text-gray-900">{room.title}</h1>
-                {room.available ? (
+                <h1 className="text-3xl font-bold text-gray-900">{roomData.title}</h1>
+                {roomData.available ? (
                   <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium mt-2 sm:mt-0">
                     Available Now
                   </div>
@@ -90,29 +60,31 @@ Utilities (electricity, water, heat) and high-speed internet are included in the
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                 </svg>
-                {room.location}
+                {propertyData.location}
               </div>
               
               {/* Key Details */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div className="bg-white p-4 rounded-lg shadow-sm">
                   <div className="text-gray-500 text-sm">Price</div>
-                  <div className="text-2xl font-bold text-blue-600">${room.price}<span className="text-gray-500 text-lg">/month</span></div>
+                  <div className="text-2xl font-bold text-blue-600">${roomData.price}<span className="text-gray-500 text-lg">/month</span></div>
                 </div>
                 
+                {!roomData.available &&
                 <div className="bg-white p-4 rounded-lg shadow-sm">
                   <div className="text-gray-500 text-sm">Available</div>
-                  <div className="text-xl font-semibold">{new Date(room.date_availability.toDate()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                  <div className="text-xl font-semibold">{roomData.date_availability.toDate().toLocaleDateString('en-CA', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'})}</div>
                 </div>
-                
+                }
+
                 <div className="bg-white p-4 rounded-lg shadow-sm">
                   <div className="text-gray-500 text-sm">Washroom</div>
-                  <div className="text-xl font-semibold">{room.private_washroom ? 'Private' : 'Shared'}</div>
+                  <div className="text-xl font-semibold">{roomData.private_washroom ? 'Private' : 'Shared'}</div>
                 </div>
                 
                 <div className="bg-white p-4 rounded-lg shadow-sm">
                   <div className="text-gray-500 text-sm">Roommates</div>
-                  <div className="text-xl font-semibold">{room.roommates}</div>
+                  <div className="text-xl font-semibold">{roommatesCount}</div>
                 </div>
               </div>
               
@@ -120,7 +92,7 @@ Utilities (electricity, water, heat) and high-speed internet are included in the
               <div className="mb-8">
                 <h2 className="text-2xl font-semibold mb-4">About This Room</h2>
                 <div className="prose max-w-none">
-                  {room.description.split('\n').map((paragraph, index) => (
+                  {roomData.description.split('\n').map((paragraph, index) => (
                     <p key={index} className="mb-4 text-gray-700">{paragraph}</p>
                   ))}
                 </div>
@@ -130,7 +102,7 @@ Utilities (electricity, water, heat) and high-speed internet are included in the
               <div className="mb-8">
                 <h2 className="text-2xl font-semibold mb-4">Amenities</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {room.specific_amenities.map((amenity, index) => (
+                  {roomData.specific_amenities.map((amenity, index) => (
                     <div key={index} className="flex items-center bg-gray-50 px-4 py-3 rounded-lg">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -145,7 +117,7 @@ Utilities (electricity, water, heat) and high-speed internet are included in the
               <div className="mb-8">
                 <h2 className="text-2xl font-semibold mb-4">Location</h2>
                 <div className="bg-gray-200 rounded-lg overflow-hidden" style={{ height: '400px' }}>
-                  <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d22433.203456877294!2d-123.13960751585549!3d49.28021175064557!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x5486717f41ba2fb1%3A0xc6952794560a44aa!2sDowntown%20Vancouver%2C%20Vancouver%2C%20BC%2C%20Canada!5e0!3m2!1sen!2smx!4v1745962606329!5m2!1sen!2smx" className="w-full h-full flex items-center justify-center" allowFullScreen={false} loading="lazy" referrerPolicy={"no-referrer-when-downgrade"}></iframe>
+                  <iframe src={propertyData.url_map} className="w-full h-full flex items-center justify-center" allowFullScreen={false} loading="lazy" referrerPolicy={"no-referrer-when-downgrade"}></iframe>
                 </div>
               </div>
             </div>

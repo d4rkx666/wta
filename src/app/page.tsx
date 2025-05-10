@@ -1,49 +1,13 @@
 'use client'
 
 import Carousel from '@/app/components/common/Carousel';
-import { RoomCard } from './components/RoomCard';
-import { useLiveDocuments } from '@/hooks/useLiveListing';
-import Loader from './components/common/Loader';
 import { useRouter } from 'next/navigation';
+import ShowRoomCards from './components/common/ShowRoomCards';
 
 export default function HomePage() {
 
    // Navigation
    const router = useRouter();
-   
-   const {data, loading} = useLiveDocuments();
-
-   if (loading) {
-      return <Loader />;
-   }
-   
-   const featuredRooms = data;
-   /*const featuredRooms2 = [
-      {
-         id: "rKoa7qfOWVZgPGlEO53v",
-         title: "Modern Downtown Room",
-         location: "Yaletown, Vancouver",
-         image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-         price: 1200,
-         rommates: 2,
-      },
-      {
-         id: 2,
-         title: "Cozy Kitsilano Room",
-         location: "Kitsilano, Vancouver",
-         image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-         price: 950,
-         rommates: 1,
-      },
-      {
-         id: 3,
-         title: "Luxury West End Room",
-         location: "West End, Vancouver",
-         image: "https://images.unsplash.com/photo-1493809842364-78817add7ffb?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-         price: 1500,
-         rommates: 3,
-      },
-   ];*/
 
    return (
       <div>
@@ -61,11 +25,8 @@ export default function HomePage() {
                   <p className="text-gray-600 max-w-2xl mx-auto">Browse our selection of premium rooms in Vancouver&apos;s best neighborhoods.</p>
                </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-               {featuredRooms.map((room, i) => (
-                  <RoomCard key={i} room={room}/>
-                  ))}
-               </div>
+               
+               <ShowRoomCards showNotAvailable={false}/>
 
                <div className="text-center mt-12">
                   <button onClick={() => router.push(`/listing`)} className="bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-6 py-3 rounded-lg font-medium transition">

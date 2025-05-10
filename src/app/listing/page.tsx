@@ -1,42 +1,54 @@
 'use client';
 
-import { useState } from 'react';
-import { RoomCard } from '../components/RoomCard';
-import { useLiveDocuments } from '@/hooks/useLiveListing';
+import { useEffect, useState } from 'react';
 import Loader from '../components/common/Loader';
+import { useLiveRooms } from '@/hooks/useLiveRooms';
+import { useLiveDocuments } from '@/hooks/useLiveProperties';
+import ShowRoomCards from '../components/common/ShowRoomCards';
 
 const RoomListing = () => {
    // State for filters
-   const [priceRange, setPriceRange] = useState<[number, number]>([800, 5000]);
+   const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
+   const [currentPriceRange, setCurrentPriceRange] = useState<[number, number]>([0, 0]);
    const [selectedNeighborhoods, setSelectedNeighborhoods] = useState<string[]>([]);
    const [hasPrivateWashroom, setHasPrivateWashroom] = useState<boolean | null>(null);
 
-   const { data, loading } = useLiveDocuments();
-   if (loading) {
-      return <Loader />;
-   }
-
-   const rooms = data;
+   const { data: rooms, loading: loadingRooms } = useLiveRooms();
+   const { data: properties, loading: loadingProperties } = useLiveDocuments();
 
    // Filter rooms based on selected filters
    const filteredRooms = rooms ? rooms.filter(room => {
       // Price range filter
-      if (room.price < priceRange[0] || room.price > priceRange[1]) return false;
+      if (room.price < currentPriceRange[0]) return false;
 
       // Private washroom filter
       if (hasPrivateWashroom !== null && room.private_washroom !== hasPrivateWashroom) return false;
 
       // Neighborhood filter
       if (selectedNeighborhoods.length > 0) {
-         const neighborhood = room.location.split(',')[0];
+         const neighborhood = properties.find(p => p.id === room.id_property)?.location || "";
          if (!selectedNeighborhoods.includes(neighborhood)) return false;
       }
 
       return true;
-   }):[];
+   }) : [];
 
-   // Available neighborhoods
-   const neighborhoods = rooms ? Array.from(new Set(rooms.map(room => room.location.split(',')[0]))) : [];
+   useEffect(() => {
+      const cheapestPrice = rooms.reduce((minPrice, currentItem) => {
+         return currentItem.price < minPrice ? currentItem.price : minPrice;
+      }, Infinity);
+
+      const highestPrice = rooms.reduce((maxPrice, currentItem) => {
+         return currentItem.price > maxPrice ? currentItem.price : maxPrice;
+       }, -Infinity); 
+
+       setPriceRange([cheapestPrice, highestPrice])
+       setCurrentPriceRange([cheapestPrice, highestPrice])
+   }, [rooms, loadingRooms])
+
+   if (loadingRooms || loadingProperties) {
+      return <Loader />;
+   }
 
    return (
       <div className="container mx-auto px-4 py-8">
@@ -49,17 +61,17 @@ const RoomListing = () => {
                <div>
                   <label className="block text-gray-700 font-medium mb-2">Price Range</label>
                   <div className="flex items-center space-x-4">
-                     <span className="text-gray-600">${priceRange[0]}</span>
+                     <span className="text-gray-600">${currentPriceRange[0]}</span>
                      <input
                         type="range"
-                        min="800"
-                        max="3000"
+                        min={priceRange[0]}
+                        max={priceRange[1]}
                         step="50"
-                        value={priceRange[0]}
-                        onChange={(e) => setPriceRange([parseInt(e.target.value), priceRange[1]])}
+                        value={currentPriceRange[0]}
+                        onChange={(e) => setCurrentPriceRange([parseInt(e.target.value), priceRange[1]])}
                         className="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer"
                      />
-                     <span className="text-gray-600">${priceRange[1]}</span>
+                     <span className="text-gray-600">${currentPriceRange[1]}</span>
                   </div>
                </div>
 
@@ -67,22 +79,22 @@ const RoomListing = () => {
                <div>
                   <label className="block text-gray-700 font-medium mb-2">Neighborhood</label>
                   <div className="flex flex-wrap gap-2">
-                     {neighborhoods.map(neighborhood => (
+                     {properties.map(prop => (
                         <button
-                           key={neighborhood}
+                           key={prop.id}
                            onClick={() => {
-                              if (selectedNeighborhoods.includes(neighborhood)) {
-                                 setSelectedNeighborhoods(selectedNeighborhoods.filter(n => n !== neighborhood));
+                              if (selectedNeighborhoods.includes(prop.location)) {
+                                 setSelectedNeighborhoods(selectedNeighborhoods.filter(n => n !== prop.location));
                               } else {
-                                 setSelectedNeighborhoods([...selectedNeighborhoods, neighborhood]);
+                                 setSelectedNeighborhoods([...selectedNeighborhoods, prop.location]);
                               }
                            }}
-                           className={`px-3 py-1 rounded-full text-sm ${selectedNeighborhoods.includes(neighborhood)
-                                 ? 'bg-blue-600 text-white'
-                                 : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                           className={`px-3 py-1 rounded-full text-sm ${selectedNeighborhoods.includes(prop.location)
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                               }`}
                         >
-                           {neighborhood}
+                           {prop.location}
                         </button>
                      ))}
                   </div>
@@ -95,8 +107,8 @@ const RoomListing = () => {
                      <button
                         onClick={() => setHasPrivateWashroom(null)}
                         className={`px-4 py-2 rounded-lg ${hasPrivateWashroom === null
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                           ? 'bg-blue-600 text-white'
+                           : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                            }`}
                      >
                         Any
@@ -104,8 +116,8 @@ const RoomListing = () => {
                      <button
                         onClick={() => setHasPrivateWashroom(true)}
                         className={`px-4 py-2 rounded-lg ${hasPrivateWashroom === true
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                           ? 'bg-blue-600 text-white'
+                           : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                            }`}
                      >
                         Private
@@ -113,8 +125,8 @@ const RoomListing = () => {
                      <button
                         onClick={() => setHasPrivateWashroom(false)}
                         className={`px-4 py-2 rounded-lg ${hasPrivateWashroom === false
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                           ? 'bg-blue-600 text-white'
+                           : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                            }`}
                      >
                         Shared
@@ -136,11 +148,7 @@ const RoomListing = () => {
 
          {/* Room Cards Grid */}
          {filteredRooms.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {filteredRooms.map(room => (
-                  <RoomCard key={room.id} room={room} />
-               ))}
-            </div>
+            <ShowRoomCards rooms={filteredRooms} showNotAvailable={true} />
          ) : (
             <div className="bg-white rounded-xl shadow-md p-8 text-center">
                <svg
@@ -163,7 +171,7 @@ const RoomListing = () => {
                </p>
                <button
                   onClick={() => {
-                     setPriceRange([800, 2000]);
+                     setCurrentPriceRange([priceRange[0], priceRange[1]])
                      setSelectedNeighborhoods([]);
                      setHasPrivateWashroom(null);
                   }}
