@@ -1,15 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase/client';
 import Link from 'next/link';
+import {login_user} from "@/hooks/login"
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,15 +18,20 @@ const LoginPage = () => {
     setError('');
 
     try {
-      // Replace with your actual authentication logic
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock authentication - in a real app, you would call your API here
-      if (email === 'admin@example.com' && password === 'password') {
-        router.push('/dashboard'); // Redirect on successful login
-      } else {
-        setError('Invalid email or password');
-      }
+      await signInWithEmailAndPassword(auth, email, password).then(async (login)=>{
+        const token = await login.user.getIdTokenResult();
+
+        const data = await login_user(token.token);
+        const resp = await data.json();
+
+        if(resp.success){
+          window.location.href = "/dashboard";
+        } else {
+          setError('Email or password incorrect. Please try again.');
+        }
+      }).catch(()=>{
+        setError("Email or password incorrect. Please try again.")
+      });
     } catch (err) {
       setError(String(err));
     } finally {
@@ -144,7 +150,7 @@ const LoginPage = () => {
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-white text-gray-500">
-                Vancouver Room Management
+                Tenant Management
               </span>
             </div>
           </div>

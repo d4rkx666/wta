@@ -30,17 +30,17 @@ const Footer = () => {
            <div>
              <h4 className="text-lg font-semibold mb-4">Contact</h4>
              <ul className="space-y-2 text-gray-400">
-               <li>1234 Rental St, Vancouver</li>
+               <li>Vancouver</li>
                <li>BC, Canada</li>
-               <li>info@vancouverrooms.com</li>
-               <li>+1 (604) 123-4567</li>
+               <li>admin@welcometravelaccommodation.com</li>
+               <li>+1 (236) 889-4473</li>
              </ul>
            </div>
          </div>
          
          <div className="border-t border-gray-800 mt-8 pt-6 flex flex-col md:flex-row justify-between items-center">
            <p className="text-gray-400 text-sm">
-             © {new Date().getFullYear()} Vancouver Rooms. All rights reserved.
+             © {new Date().getFullYear()} Welcome Travel Accommodation. All rights reserved.
            </p>
            <div className="flex space-x-4 mt-4 md:mt-0">
              <Link href="#" className="text-gray-400 hover:text-white transition">

@@ -1,7 +1,21 @@
 'use client'
 import Link from 'next/link';
+import { useAuth } from './contexts/AuthProvider';
+import { auth } from '@/lib/firebase/client';
+import { logout_user } from '@/hooks/logout';
 
 const Header = () => {
+  const {isAuth} = useAuth()
+
+  const handleLogout = async()=>{
+    await auth.signOut();
+    const r = await logout_user();
+    const data = await r.json();
+    if(data.success){
+      window.location.href = "/login";
+    }
+  }
+
   return (
     <header className="bg-white shadow-md">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -16,7 +30,15 @@ const Header = () => {
         <nav className="hidden md:flex space-x-8">
           <Link href="/" className="text-gray-800 hover:text-blue-600 font-medium transition">Home</Link>
           <Link href="/about" className="text-gray-800 hover:text-blue-600 font-medium transition">About</Link>
-          <Link href="/login" className="text-gray-800 hover:text-blue-600 font-medium transition">Login</Link>
+          {isAuth ? (
+            <>
+              <Link href="/dashboard" className="text-gray-800 hover:text-blue-600 font-medium transition">Dashboard</Link>
+              <button onClick={handleLogout} className="text-gray-800 hover:text-blue-600 font-medium transition">Logout</button>
+            </>
+          ):(
+            <Link href="/login" className="text-gray-800 hover:text-blue-600 font-medium transition">Login</Link>
+          )}
+          
         </nav>
       </div>
     </header>
