@@ -8,9 +8,13 @@ import { Payment } from '@/types/payment';
 import ConfirmationModal from './components/ConfirmationModal';
 import { notify_payment } from '@/hooks/notifyPayment';
 import ChangePasswordModal from '../components/common/ChangePasswordModal';
+import { useLiveBills } from '@/hooks/useLiveBills';
+import { useNotification } from '../contexts/NotificationContext';
 
 export default function CustomerDashboard() {
   const {name, email, firstTime} = useAuth();
+  const {showNotification} = useNotification();
+  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('payments');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
   const [message, setMessage] = useState('');
@@ -19,55 +23,61 @@ export default function CustomerDashboard() {
   const [currentPayment, setCurrentPayment] = useState<Payment>();
 
   const {data: payments, loading: loadingPayments} = useLivePayments();
+  const ids = payments.filter(p=>p.bill_id).map(p=>p.bill_id);
+  const {data: bills, loading: loadingBills} = useLiveBills({ids: ids.length > 0 ? ids : []});
+
+  const markAsPaid = (id: string) => {
+    setShowConfirmationModal(true);
+    const currentP = payments.find(payment => payment.id === id);
+    setCurrentPayment(currentP);
+  };
+
+  const sendRequest = (e: React.FormEvent) => {
+    e.preventDefault();
+    alert(`Your ${messageType} request has been submitted successfully!`);
+    setMessage('');
+  };
+
+  const filteredPayments = useMemo(()=>{
+    if(paymentStatusFilter === "all"){
+      return payments.filter(payment => payment.is_current).sort((a,b) => b.status.localeCompare(a.status)); 
+    }else if(paymentStatusFilter === "Future"){
+      return payments.filter(payment => !payment.is_current).sort((a,b) =>a.dueDate && a.dueDate.toDate().getTime() - b.dueDate.toDate().getTime()); 
+    }
+    return payments.filter(payment => payment.status === paymentStatusFilter && payment.is_current).sort((a,b) => a.dueDate && a.dueDate.toDate().getTime() - b.dueDate.toDate().getTime()); 
+  },[payments, paymentStatusFilter])
 
   const balance = useMemo(()=>{
-    const total = payments.reduce((number, payment) => number + payment.amount_payment, 0);
-    const balance = payments.reduce((number, payment) => number - (payment.status === "Paid" ? payment.amount_payment : 0),total);
+    const total = filteredPayments.reduce((number, payment) => number + payment.amount_payment, 0);
+    const balance = filteredPayments.reduce((number, payment) => number - (payment.status === "Paid" ? payment.amount_payment : 0),total);
     return balance;
-  },[payments]);
+  },[filteredPayments]);
 
   const lastUpdate = useMemo(()=>{
     const last = payments.reduce((latest, payment) => {return payment.paidDate ? payment.paidDate.toDate() > latest ? payment.paidDate.toDate() : latest : latest}, new Date(0));
     return last;
   },[payments]);
 
-  const markAsPaid = (id: string) => {
-    setShowConfirmationModal(true);
-    const currentP = payments.find(payment => payment.id === id);
-    console.log(currentP)
-    setCurrentPayment(currentP);
-  };
-
-  console.log(payments)
-
-  const sendRequest = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Here you would typically send the message to your backend/email service
-    console.log(`Sending ${messageType} request:`, message);
-    alert(`Your ${messageType} request has been submitted successfully!`);
-    setMessage('');
-  };
-
-  const filteredPayments = paymentStatusFilter === 'all' 
-    ? payments 
-    : payments.filter(payment => payment.status === paymentStatusFilter);
-
   const handleConfirm = async(email:string)=>{
     try{
+      setLoading(true);
       const data = await notify_payment(currentPayment, email);
       const resp = await data.json();
 
       if(resp.success){
+        showNotification("success", "Notification sent. Your landlord is verifying your payment. Come back later to check your payment's status!")
         setShowConfirmationModal(false);
+      }else{
+        showNotification("error", "Something went wrong. Please try again. If the problem persists, please re-login.")
       }
     }catch{
 
     }finally{
-
+      setLoading(false)
     }
   }
 
-  if(loadingPayments){
+  if(loadingPayments || loadingBills){
     return <Loader/>
   }
   return (
@@ -84,7 +94,7 @@ export default function CustomerDashboard() {
             <div className="flex items-center space-x-4">
               <span className="hidden md:inline">{name || email}</span>
               <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center">
-                <span className="text-lg font-semibold">{name && name.split(" ").map(word => word[0]).join('')}</span>
+                <span className="text-lg font-semibold">{name && name.split(" ").slice(0,2).map(word => word[0]).join('')}</span>
               </div>
             </div>
           </div>
@@ -132,13 +142,19 @@ export default function CustomerDashboard() {
                   </button>
                   <button
                     onClick={() => setPaymentStatusFilter('Pending')}
-                    className={`px-3 py-1 text-xs rounded-full ${paymentStatusFilter === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800'}`}
+                    className={`px-3 py-1 text-xs rounded-full ${paymentStatusFilter === 'Pending' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800'}`}
                   >
                     Pending
                   </button>
                   <button
+                    onClick={() => setPaymentStatusFilter('Future')}
+                    className={`px-3 py-1 text-xs rounded-full ${paymentStatusFilter === 'Future' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
+                  >
+                    Future
+                  </button>
+                  <button
                     onClick={() => setPaymentStatusFilter('Paid')}
-                    className={`px-3 py-1 text-xs rounded-full ${paymentStatusFilter === 'paid' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
+                    className={`px-3 py-1 text-xs rounded-full ${paymentStatusFilter === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
                   >
                     Paid
                   </button>
@@ -167,10 +183,18 @@ export default function CustomerDashboard() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredPayments.map((payment) => (
+                    {filteredPayments.map((payment) => {
+                    let bill = undefined;
+                    if (payment.bill_id){
+                      bill = bills.find(bill=>bill.id === payment.bill_id);
+                    }
+                    return(
                       <tr key={payment.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {payment.type}
+                          {payment.type.replace(/^(\w)/, (match) => match.toUpperCase())}
+                          {(payment.type === "bills" && bill) &&
+                            <span className='ml-2'>({bill.type})</span>
+                          }
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           ${payment.amount_payment.toFixed(2)}
@@ -197,7 +221,7 @@ export default function CustomerDashboard() {
                           )}
                         </td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>
@@ -255,6 +279,7 @@ export default function CustomerDashboard() {
         email={email}
         payment={currentPayment?.amount_payment && currentPayment?.amount_payment || 0}
         handleConfirm={handleConfirm}
+        loading={loading}
         setShowConfirmationModal={setShowConfirmationModal}/>
       }
 

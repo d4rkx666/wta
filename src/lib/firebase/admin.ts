@@ -33,14 +33,15 @@ export async function verifyIdToken(token: string):Promise<any | null>{
          if (userDoc.exists) {
             const userFirestoreData = userDoc.data();
 
-            // You can merge Firestore data if required
-            return {
-               ...data,
-               ...userFirestoreData,  // Add more fields from Firestore
-            };
+            if(!userFirestoreData?.isActive){
+               return null
+            }else{
+               return {
+                  ...data,
+                  ...userFirestoreData,
+               };
+            }
          }
-
-         return data;
       }else{
          return null;
       }

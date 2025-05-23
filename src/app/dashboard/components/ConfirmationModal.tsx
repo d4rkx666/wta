@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction, useState } from "react";
 
-function ConfirmationModal({email, payment, handleConfirm, setShowConfirmationModal}:{email: string, payment:number, handleConfirm:(email:string)=>void, setShowConfirmationModal:Dispatch<SetStateAction<boolean>>}) {
+function ConfirmationModal({email, payment, loading, handleConfirm, setShowConfirmationModal}:{email: string, payment:number, loading:boolean, handleConfirm:(email:string)=>void, setShowConfirmationModal:Dispatch<SetStateAction<boolean>>}) {
    const [selectedEmail, setSelectedEmail] = useState(email);
    const [isDefaultSelected, setIsDefaultSeleted] = useState(true);
    const [error, setError] = useState("");
@@ -79,7 +79,7 @@ function ConfirmationModal({email, payment, handleConfirm, setShowConfirmationMo
                   </div>
 
                   <div className="mt-4 text-sm text-gray-500">
-                     <p>Once you&apos;ve sent the e-transfer, click &quot;Confirm Payment&quot; below to update your records.</p>
+                     <p>Once you&apos;ve sent the e-transfer, click &quot;Confirm Payment&quot; below to notify the landlord about your payment.</p>
                   </div>
                </div>
 
@@ -91,6 +91,7 @@ function ConfirmationModal({email, payment, handleConfirm, setShowConfirmationMo
                      Cancel
                   </button>
                   <button
+                     disabled={loading}
                      onClick={()=>{
                         if(selectedEmail != ""){
                            if(validateEmail(selectedEmail)){
@@ -102,9 +103,10 @@ function ConfirmationModal({email, payment, handleConfirm, setShowConfirmationMo
                            setError("Please provide an email.");
                         }
                      }}
-                     className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                     className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300"
                   >
-                     Confirm Payment
+                     {loading ? "Notifying your landlord..." : "Confirm Payment"}
+                     
                   </button>
                </div>
             </div>
