@@ -16,6 +16,8 @@ const RoomListing = () => {
    const { data: rooms, loading: loadingRooms } = useLiveRooms();
    const { data: properties, loading: loadingProperties } = useLiveDocuments();
 
+   const neighborhoods = [...new Map(properties.map(item => [item.location, item])).values()];
+
    // Filter rooms based on selected filters
    const filteredRooms = rooms ? rooms.filter(room => {
       // Price range filter
@@ -79,7 +81,7 @@ const RoomListing = () => {
                <div>
                   <label className="block text-gray-700 font-medium mb-2">Neighborhood</label>
                   <div className="flex flex-wrap gap-2">
-                     {properties.map(prop => (
+                     {neighborhoods.map(prop => (
                         <button
                            key={prop.id}
                            onClick={() => {
