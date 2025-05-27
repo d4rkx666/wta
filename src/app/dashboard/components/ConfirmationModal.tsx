@@ -1,17 +1,18 @@
+import { DocumentTextIcon } from "@heroicons/react/24/outline";
 import { Dispatch, SetStateAction, useState } from "react";
 
-function ConfirmationModal({email, payment, loading, handleConfirm, setShowConfirmationModal}:{email: string, payment:number, loading:boolean, handleConfirm:(email:string)=>void, setShowConfirmationModal:Dispatch<SetStateAction<boolean>>}) {
+function ConfirmationModal({ email, payment, setPaymentProof, paymentProof, loading, handleConfirm, setShowConfirmationModal }: { email: string, payment: number, setPaymentProof: Dispatch<SetStateAction<File | null>>, paymentProof: File | null, loading: boolean, handleConfirm: (email: string) => void, setShowConfirmationModal: Dispatch<SetStateAction<boolean>> }) {
    const [selectedEmail, setSelectedEmail] = useState(email);
    const [isDefaultSelected, setIsDefaultSeleted] = useState(true);
    const [error, setError] = useState("");
 
-   function validateEmail(email:string) {
+   function validateEmail(email: string) {
       const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       return regex.test(email);
    }
 
    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 ">
          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
             <div className="p-6">
                <h2 className="text-xl font-bold text-gray-800 mb-4">Confirm Payment</h2>
@@ -50,7 +51,7 @@ function ConfirmationModal({email, payment, loading, handleConfirm, setShowConfi
                               {email}
                            </label>
                         </div>
-                        
+
                         <div className="flex items-center">
                            <input
                               id="another"
@@ -78,6 +79,31 @@ function ConfirmationModal({email, payment, loading, handleConfirm, setShowConfi
                      </div>
                   </div>
 
+
+                  <div>
+                     <label htmlFor="paymentProof" className="block text-sm font-medium text-gray-700 mb-1">
+                        Please attach the payment proof (screenshot)
+                     </label>
+                     <div className="flex items-center">
+                        <label className="flex flex-col items-center justify-center w-full p-2 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                           <div className="flex flex-col items-center justify-center pt-2 pb-3">
+                              <DocumentTextIcon className="h-8 w-8 text-gray-400" />
+                              <p className="text-xs text-gray-500 mt-2">
+                                 {paymentProof ? paymentProof.name : "Click to upload payment screenshot"}
+                              </p>
+                           </div>
+                           <input
+                              id="paymentProof"
+                              name="paymentProof"
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => setPaymentProof(e.target.files?.[0] || null)}
+                           />
+                        </label>
+                     </div>
+                  </div>
+
                   <div className="mt-4 text-sm text-gray-500">
                      <p>Once you&apos;ve sent the e-transfer, click &quot;Confirm Payment&quot; below to notify the landlord about your payment.</p>
                   </div>
@@ -85,28 +111,35 @@ function ConfirmationModal({email, payment, loading, handleConfirm, setShowConfi
 
                <div className="flex justify-end space-x-3">
                   <button
-                     onClick={() => setShowConfirmationModal(false)}
+                     onClick={() => {
+                        setPaymentProof(null);
+                        setShowConfirmationModal(false)
+                     }}
                      className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
                      Cancel
                   </button>
                   <button
                      disabled={loading}
-                     onClick={()=>{
-                        if(selectedEmail != ""){
-                           if(validateEmail(selectedEmail)){
-                              handleConfirm(selectedEmail)
-                           }else{
+                     onClick={() => {
+                        if (selectedEmail != "") {
+                           if (validateEmail(selectedEmail)) {
+                              if(paymentProof){
+                                 handleConfirm(selectedEmail)
+                              }else{
+                                 setError("Please attach the payment proof.")
+                              }
+                           } else {
                               setError("Please provide a valid email.");
                            }
-                        }else{
+                        } else {
                            setError("Please provide an email.");
                         }
                      }}
                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300"
                   >
                      {loading ? "Notifying your landlord..." : "Confirm Payment"}
-                     
+
                   </button>
                </div>
             </div>

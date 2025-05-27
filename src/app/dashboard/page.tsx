@@ -21,6 +21,7 @@ export default function CustomerDashboard() {
   const [messageType, setMessageType] = useState('maintenance');
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [currentPayment, setCurrentPayment] = useState<Payment>();
+  const [paymentProof, setPaymentProof] = useState<File | null>(null);
 
   const {data: payments, loading: loadingPayments} = useLivePayments();
   const ids = payments.filter(p=>p.bill_id).map(p=>p.bill_id);
@@ -61,7 +62,19 @@ export default function CustomerDashboard() {
   const handleConfirm = async(email:string)=>{
     try{
       setLoading(true);
-      const data = await notify_payment(currentPayment, email);
+      if(!currentPayment || !paymentProof){
+        showNotification("error", "Something went wrong. Please check the form before submitting.")
+        setLoading(false);
+        return;
+      }
+
+      const formData = new FormData();
+      currentPayment.e_transfer_email = email;
+
+      formData.append("payment", JSON.stringify(currentPayment));
+      formData.append("proof", paymentProof)
+      
+      const data = await notify_payment(formData);
       const resp = await data.json();
 
       if(resp.success){
@@ -70,6 +83,7 @@ export default function CustomerDashboard() {
       }else{
         showNotification("error", "Something went wrong. Please try again. If the problem persists, please re-login.")
       }
+      
     }catch{
 
     }finally{
@@ -278,6 +292,8 @@ export default function CustomerDashboard() {
         <ConfirmationModal
         email={email}
         payment={currentPayment?.amount_payment && currentPayment?.amount_payment || 0}
+        setPaymentProof={setPaymentProof}
+        paymentProof={paymentProof}
         handleConfirm={handleConfirm}
         loading={loading}
         setShowConfirmationModal={setShowConfirmationModal}/>

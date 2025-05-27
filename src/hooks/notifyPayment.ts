@@ -1,7 +1,6 @@
 "use client";
 import {call} from "@/lib/services/api"
-import { Payment } from "@/types/payment";
-export const notify_payment = async (payment: Payment| undefined, email: string)=>{
-   const response = await call("/notify-payment", {payment, email})
+export const notify_payment = async (formData: FormData)=>{
+   const response = await call("/notify-payment", formData, false)
    return response;
 }

@@ -12,6 +12,7 @@
     "@heroicons/react": "^2.2.0",
     "@tailwindcss/postcss": "^4.1.4",
     "autoprefixer": "^10.4.21",
+    "cloudinary": "^2.6.1",
     "firebase": "^11.6.1",
     "firebase-admin": "^13.3.0",
     "next": "15.3.1",
