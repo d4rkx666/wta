@@ -16,7 +16,7 @@ export default function CustomerDashboard() {
   const {showNotification} = useNotification();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('payments');
-  const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('Pending');
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('maintenance');
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
@@ -40,12 +40,14 @@ export default function CustomerDashboard() {
   };
 
   const filteredPayments = useMemo(()=>{
-    if(paymentStatusFilter === "all"){
-      return payments.filter(payment => payment.is_current).sort((a,b) => b.status.localeCompare(a.status)); 
+    if(paymentStatusFilter === "Paid"){
+      return payments.filter(payment => payment.status === "Paid").sort((a,b) =>(a.dueDate && b.dueDate) && b.dueDate.toDate().getTime() - a.dueDate.toDate().getTime()); 
+    }else if(paymentStatusFilter === "Pending"){
+      return payments.filter(payment => (payment.status === "Pending" || payment.status === "Marked") && payment.is_current).sort((a,b) =>(a.dueDate && b.dueDate) && a.dueDate.toDate().getTime() - b.dueDate.toDate().getTime()); 
     }else if(paymentStatusFilter === "Future"){
-      return payments.filter(payment => !payment.is_current).sort((a,b) =>a.dueDate && a.dueDate.toDate().getTime() - b.dueDate.toDate().getTime()); 
+      return payments.filter(payment => payment.dueDate && payment.dueDate.toDate().getTime() > new Date(new Date().setMonth(new Date().getMonth() + 1)).getTime()).sort((a,b) =>(a.dueDate && b.dueDate) && a.dueDate.toDate().getTime() - b.dueDate.toDate().getTime()); 
     }
-    return payments.filter(payment => payment.status === paymentStatusFilter && payment.is_current).sort((a,b) => a.dueDate && a.dueDate.toDate().getTime() - b.dueDate.toDate().getTime()); 
+    return payments.sort((a,b) => b.status.localeCompare(a.status)).sort((a,b) =>(a.dueDate && b.dueDate) && b.dueDate.toDate().getTime() - a.dueDate.toDate().getTime());
   },[payments, paymentStatusFilter])
 
   const balance = useMemo(()=>{
@@ -158,7 +160,7 @@ export default function CustomerDashboard() {
                     onClick={() => setPaymentStatusFilter('Pending')}
                     className={`px-3 py-1 text-xs rounded-full ${paymentStatusFilter === 'Pending' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800'}`}
                   >
-                    Pending
+                    Pending (Current)
                   </button>
                   <button
                     onClick={() => setPaymentStatusFilter('Future')}
