@@ -43,7 +43,7 @@ export default function Carousel({room}:{room?: Room}) {
                 src={src.url}
                 alt={`Room ${index + 1}`}
                 fill
-                className="object-cover"
+                className="object-contain"
                 priority={index === 0}
               />
             </div>
