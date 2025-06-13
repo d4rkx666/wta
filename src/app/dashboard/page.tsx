@@ -124,6 +124,8 @@ export default function CustomerDashboard() {
             <h2 className="text-lg font-semibold text-gray-700 mb-2">Your Current Balance</h2>
             <p className="text-3xl font-bold text-indigo-600">${balance.toFixed(2)}</p>
             <p className="text-sm text-gray-500 mt-2">Last updated: {lastUpdate.toLocaleDateString()}</p>
+            <p className="text-xs text-yellow-600 mt-5">Avoid <span className='font-bold'>penalties</span> paying your rent and other payments <span className='font-bold'>on time</span>.</p>
+            <p className="text-xs text-yellow-600/60">Penalty formula: <span className='font-bold'>Penalty * Day late</span> (e.g. 25 cad * 2 days late = <span className='font-bold'>50 cad of penalty</span>)</p>
           </div>
         </div>
 
@@ -210,6 +212,11 @@ export default function CustomerDashboard() {
                           {payment.type.replace(/^(\w)/, (match) => match.toUpperCase())}
                           {(payment.type === "bills" && bill) &&
                             <span className='ml-2'>({bill.type})</span>
+                          }
+                          {payment.type === "penalty" && 
+                            <>
+                              <br/><span className='text-red-500 text-xs'>{payment.comments}</span>
+                            </>
                           }
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

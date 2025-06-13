@@ -2,8 +2,8 @@
 import { Timestamp } from "firebase/firestore";
 import { PaymentStatus } from "./paymentStatus";
 
-type PaymentType = "rent" | "deposit" | "bills";
-type PaymentMethod = "E-Transfer" | "Credit/Debit Card" | "Cash";
+type PaymentType = "rent" | "deposit" | "bills" | "penalty";
+type PaymentMethod = "E-Transfer" | "Credit/Debit Card" | "Cash" | "Other";
 
 export type Payment = {
    id: string;
@@ -19,6 +19,7 @@ export type Payment = {
    dueDate: Timestamp;
    paidDate: Timestamp;
    createdAt: Timestamp;
+   comments?: string;
    status: PaymentStatus;
 };
 
