@@ -9,6 +9,7 @@ import ShowRoomCards from '../components/common/ShowRoomCards';
 const RoomListing = () => {
    // State for filters
    const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
+   const [onlyAvailable, setOnlyAvailable] = useState(true);
    const [currentPriceRange, setCurrentPriceRange] = useState<[number, number]>([0, 0]);
    const [selectedNeighborhoods, setSelectedNeighborhoods] = useState<string[]>([]);
    const [hasPrivateWashroom, setHasPrivateWashroom] = useState<boolean | null>(null);
@@ -32,6 +33,10 @@ const RoomListing = () => {
          if (!selectedNeighborhoods.includes(neighborhood)) return false;
       }
 
+      if(onlyAvailable && !room.available){
+         return false;
+      }
+
       return true;
    }) : [];
 
@@ -42,10 +47,10 @@ const RoomListing = () => {
 
       const highestPrice = rooms.reduce((maxPrice, currentItem) => {
          return currentItem.price > maxPrice ? currentItem.price : maxPrice;
-       }, -Infinity); 
+      }, -Infinity);
 
-       setPriceRange([cheapestPrice, highestPrice])
-       setCurrentPriceRange([cheapestPrice, highestPrice])
+      setPriceRange([cheapestPrice, highestPrice])
+      setCurrentPriceRange([cheapestPrice, highestPrice])
    }, [rooms, loadingRooms])
 
    if (loadingRooms || loadingProperties) {
@@ -134,6 +139,19 @@ const RoomListing = () => {
                         Shared
                      </button>
                   </div>
+               </div>
+
+               {/* Availability Checkbox */}
+               <div className="flex items-center">
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                     <input
+                        type="checkbox"
+                        checked={onlyAvailable}
+                        onChange={(e) => setOnlyAvailable(e.target.checked)}
+                        className="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                     />
+                     <span className="text-gray-700 font-medium">Only Available</span>
+                  </label>
                </div>
             </div>
          </div>

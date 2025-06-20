@@ -102,7 +102,18 @@ const RoomDetail = () => {
               <div className="mb-8">
                 <h2 className="text-2xl font-semibold mb-4">Amenities</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {roomData.specific_amenities.map((amenity, index) => (
+                  {/** SPECIFIC */}
+                  {roomData.specific_amenities.map((amenity, index) => amenity.available && (
+                    <div key={index} className="flex items-center bg-gray-50 px-4 py-3 rounded-lg">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      {amenity.name}
+                    </div>
+                  ))}
+
+                  {/** GLOBAL */}
+                  {propertyData.global_amenities.map((amenity, index) => amenity.available && (
                     <div key={index} className="flex items-center bg-gray-50 px-4 py-3 rounded-lg">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
