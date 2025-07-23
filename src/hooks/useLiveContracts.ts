@@ -2,11 +2,11 @@
 import { useEffect, useState } from 'react';
 import { collection, getDocs, onSnapshot, query, where } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
-import { Payment } from '@/types/payment';
 import { onAuthStateChanged, User } from 'firebase/auth'; // Import onAuthStateChanged
+import { Contract } from '@/types/contract';
 
-export function useLivePayments() {
-  const [data, setData] = useState<Payment[]>([]); // State to hold the documents
+export function useLiveContracts() {
+  const [data, setData] = useState<Contract[]>([]); // State to hold the documents
   const [loading, setLoading] = useState<boolean>(true); // Loading state to track fetching status
   const [user, setUser] = useState<User | null>(null); // To hold the authenticated user info
 
@@ -33,12 +33,12 @@ export function useLivePayments() {
       try {
         // Now that you have the user, query payments where tenant_id is equal to user.uid
         const paymentsQuery = query(
-          collection(db, "payments"),
+          collection(db, "contracts"),
           where("tenant_id", "==", user.uid) // Ensure we are fetching payments only for the authenticated user
         );
         const querySnapshot = await getDocs(paymentsQuery);
         const docs = querySnapshot.docs.map(doc => ({
-          ...doc.data() as Payment,
+          ...doc.data() as Contract,
         }));
 
         setData(docs); // Set the initial data
@@ -53,10 +53,10 @@ export function useLivePayments() {
 
     // Real-time updates using onSnapshot
     const unsubscribe = onSnapshot(
-      query(collection(db, "payments"), where("tenant_id", "==", user.uid)),
+      query(collection(db, "contracts"), where("tenant_id", "==", user.uid)),
       (snap) => {
         const updatedDocs = snap.docs.map(doc => ({
-          ...doc.data() as Payment,
+          ...doc.data() as Contract,
         }));
         setData(updatedDocs); 
       }
@@ -66,23 +66,4 @@ export function useLivePayments() {
   }, [user]); // Dependency on user to refetch when user changes
 
   return { data, loading };
-}
-
-export const getPayments = async(contract_id:string)=>{
-  try {
-    // Now that you have the user, query payments where tenant_id is equal to user.uid
-    const paymentsQuery = query(
-      collection(db, "payments"),
-      where("contract_id", "==", contract_id) // Ensure we are fetching payments only for the authenticated user
-    );
-    const querySnapshot = await getDocs(paymentsQuery);
-    const docs = querySnapshot.docs.map(doc => ({
-      ...doc.data() as Payment,
-    }));
-
-    return docs
-  } catch (error) {
-    console.error("Error fetching documents:", error);
-    return []
-  } 
 }

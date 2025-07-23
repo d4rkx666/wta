@@ -1,7 +1,6 @@
 "use client"
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Head from 'next/head';
-import { useLivePayments } from '@/hooks/useLivePayments';
 import { useAuth } from '../contexts/AuthProvider';
 import Loader from '../components/common/Loader';
 import { Payment } from '@/types/payment';
@@ -10,6 +9,8 @@ import { notify_payment } from '@/hooks/notifyPayment';
 import ChangePasswordModal from '../components/common/ChangePasswordModal';
 import { useLiveBills } from '@/hooks/useLiveBills';
 import { useNotification } from '../contexts/NotificationContext';
+import { useLiveContracts } from '@/hooks/useLiveContracts';
+import { getPayments, useLivePayments } from '@/hooks/useLivePayments';
 
 export default function CustomerDashboard() {
   const {name, email, firstTime} = useAuth();
@@ -22,15 +23,23 @@ export default function CustomerDashboard() {
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [currentPayment, setCurrentPayment] = useState<Payment>();
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
+  const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
+  const [balance, setBalance] = useState<number>(0);
+  const [notified, setNotified] = useState(false);
 
   const {data: payments, loading: loadingPayments} = useLivePayments();
+  const {data: contracts, loading: loadingContracts} = useLiveContracts();
   const ids = payments.filter(p=>p.bill_id).map(p=>p.bill_id);
   const {data: bills, loading: loadingBills} = useLiveBills({ids: ids.length > 0 ? ids : []});
 
-  const markAsPaid = (id: string) => {
+  const markAsPaid = async (id: string, contract_id:string) => {
     setShowConfirmationModal(true);
-    const currentP = payments.find(payment => payment.id === id);
-    setCurrentPayment(currentP);
+    const currentContract = contracts.find(c => c.id === contract_id);
+    if (currentContract?.id) {
+      const currentPayments = await getPayments(currentContract.id);
+      const currentP = currentPayments.find(payment => payment.id === id);
+      setCurrentPayment(currentP);
+    }
   };
 
   const sendRequest = (e: React.FormEvent) => {
@@ -39,22 +48,47 @@ export default function CustomerDashboard() {
     setMessage('');
   };
 
-  const filteredPayments = useMemo(()=>{
-    if(paymentStatusFilter === "Paid"){
-      return payments.filter(payment => payment.status === "Paid").sort((a,b) =>(a.dueDate && b.dueDate) && b.dueDate.toDate().getTime() - a.dueDate.toDate().getTime()); 
-    }else if(paymentStatusFilter === "Pending"){
-      return payments.filter(payment => (payment.status === "Pending" || payment.status === "Marked") && payment.is_current).sort((a,b) =>(a.dueDate && b.dueDate) && a.dueDate.toDate().getTime() - b.dueDate.toDate().getTime()); 
-    }else if(paymentStatusFilter === "Future"){
-      return payments.filter(payment => payment.dueDate && payment.dueDate.toDate().getTime() > new Date(new Date().setMonth(new Date().getMonth() + 1)).getTime()).sort((a,b) =>(a.dueDate && b.dueDate) && a.dueDate.toDate().getTime() - b.dueDate.toDate().getTime()); 
-    }
-    return payments.sort((a,b) => b.status.localeCompare(a.status)).sort((a,b) =>(a.dueDate && b.dueDate) && b.dueDate.toDate().getTime() - a.dueDate.toDate().getTime());
-  },[payments, paymentStatusFilter])
+  useEffect(() => {
+    const fetchPayments = async () => {
+      const currentContract = contracts.find(c => c.status === "Active");
+      let currentPayments: Payment[] = [];
 
-  const balance = useMemo(()=>{
-    const total = filteredPayments.reduce((number, payment) => number + payment.amount_payment, 0);
-    const balance = filteredPayments.reduce((number, payment) => number - (payment.status === "Paid" ? payment.amount_payment : 0),total);
-    return balance;
-  },[filteredPayments]);
+      if (currentContract?.id) {
+        currentPayments = await getPayments(currentContract.id);
+      }
+
+      let result: Payment[] = [];
+
+      if (paymentStatusFilter === "Paid") {
+        result = currentPayments
+          .filter(payment => payment.status === "Paid")
+          .sort((a, b) => b.dueDate?.toDate().getTime() - a.dueDate?.toDate().getTime());
+      } else if (paymentStatusFilter === "Pending") {
+        result = currentPayments
+          .filter(payment => (payment.status === "Pending" || payment.status === "Marked") && payment.is_current)
+          .sort((a, b) => a.dueDate?.toDate().getTime() - b.dueDate?.toDate().getTime());
+      } else if (paymentStatusFilter === "Future") {
+        const nextMonth = new Date();
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        result = currentPayments
+          .filter(payment => payment.dueDate?.toDate().getTime() > nextMonth.getTime())
+          .sort((a, b) => a.dueDate?.toDate().getTime() - b.dueDate?.toDate().getTime());
+      } else {
+        result = currentPayments
+          .sort((a, b) => b.status.localeCompare(a.status))
+          .sort((a, b) => b.dueDate?.toDate().getTime() - a.dueDate?.toDate().getTime());
+      }
+
+      setFilteredPayments(result);
+
+      // Calculate balance
+      const total = result.reduce((sum, payment) => sum + payment.amount_payment, 0);
+      const balance = result.reduce((sum, payment) => sum - (payment.status === "Paid" ? payment.amount_payment : 0), total);
+      setBalance(balance);
+    };
+
+    fetchPayments();
+  }, [contracts, paymentStatusFilter, notified]);
 
   const lastUpdate = useMemo(()=>{
     const last = payments.reduce((latest, payment) => {return payment.paidDate ? payment.paidDate.toDate() > latest ? payment.paidDate.toDate() : latest : latest}, new Date(0));
@@ -64,6 +98,7 @@ export default function CustomerDashboard() {
   const handleConfirm = async(email:string)=>{
     try{
       setLoading(true);
+      console.log(currentPayment)
       if(!currentPayment || !paymentProof){
         showNotification("error", "Something went wrong. Please check the form before submitting.")
         setLoading(false);
@@ -82,6 +117,7 @@ export default function CustomerDashboard() {
       if(resp.success){
         showNotification("success", "Notification sent. Your landlord is verifying your payment. Come back later to check your payment's status!")
         setShowConfirmationModal(false);
+        setNotified(true);
       }else{
         showNotification("error", "Something went wrong. Please try again. If the problem persists, please re-login.")
       }
@@ -93,7 +129,7 @@ export default function CustomerDashboard() {
     }
   }
 
-  if(loadingPayments || loadingBills){
+  if(loadingPayments || loadingBills || loadingContracts){
     return <Loader/>
   }
   return (
@@ -234,7 +270,7 @@ export default function CustomerDashboard() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {payment.status === 'Pending' ? (
                             <button
-                              onClick={() => markAsPaid(payment.id)}
+                              onClick={() => markAsPaid(payment.id, payment.contract_id)}
                               className="text-indigo-600 hover:text-indigo-900 font-medium"
                             >
                               Mark as Paid
