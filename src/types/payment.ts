@@ -2,7 +2,7 @@
 import { Timestamp } from "firebase/firestore";
 import { PaymentStatus } from "./paymentStatus";
 
-type PaymentType = "rent" | "deposit" | "bills" | "penalty";
+type PaymentType = "rent" | "deposit" | "bills" | "penalty" | "fee";
 type PaymentMethod = "E-Transfer" | "Credit/Debit Card" | "Cash" | "Other";
 
 export type Payment = {

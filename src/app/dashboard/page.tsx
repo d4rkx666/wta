@@ -50,7 +50,7 @@ export default function CustomerDashboard() {
 
   useEffect(() => {
     const fetchPayments = async () => {
-      const currentContract = contracts.find(c => c.status === "Active");
+      const currentContract = contracts.find(c => c.status === "Active" || c.status === "Permanent");
       let currentPayments: Payment[] = [];
 
       if (currentContract?.id) {
@@ -249,7 +249,7 @@ export default function CustomerDashboard() {
                           {(payment.type === "bills" && bill) &&
                             <span className='ml-2'>({bill.type})</span>
                           }
-                          {payment.type === "penalty" && 
+                          {payment.comments && 
                             <>
                               <br/><span className='text-red-500 text-xs'>{payment.comments}</span>
                             </>
