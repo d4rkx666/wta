@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     await firestoreService.updateDocument("payments",payment.id,"paidDate", new Date(Date.now()));
     await firestoreService.updateDocument("payments",payment.id,"status", "Marked");
 
-    const proof_image_id = await insertFile(proofFile, payment.tenant_id);
+    const proof_image_id = await insertFile(proofFile, payment.contract_id);
     if(proof_image_id){
       await firestoreService.updateDocument("payments",payment.id,"proof_img_id", proof_image_id);
     }
@@ -38,13 +38,13 @@ export async function POST(req: Request) {
   }
 }
 
-async function insertFile(file:File, folder_idTenant: string):Promise<string | null>{
+async function insertFile(file:File, folder_idContract: string):Promise<string | null>{
 try {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     const stream_setup: UploadApiOptions = {
-      folder: folder_idTenant,
+      folder: folder_idContract,
       resource_type: 'image',
       type: 'private',
     }
