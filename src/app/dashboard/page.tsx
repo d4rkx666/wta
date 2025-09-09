@@ -74,9 +74,15 @@ export default function CustomerDashboard() {
           .filter(payment => payment.dueDate?.toDate().getTime() > nextMonth.getTime())
           .sort((a, b) => a.dueDate?.toDate().getTime() - b.dueDate?.toDate().getTime());
       } else {
-        result = currentPayments
-          .sort((a, b) => b.status.localeCompare(a.status))
-          .sort((a, b) => b.dueDate?.toDate().getTime() - a.dueDate?.toDate().getTime());
+        result = currentPayments.sort((a, b) => {
+          const statusCompare = b.status.localeCompare(a.status);
+          if (statusCompare !== 0) return statusCompare;
+
+          const aDue = a.dueDate?.toDate().getTime() ?? Infinity;
+          const bDue = b.dueDate?.toDate().getTime() ?? Infinity;
+
+          return aDue - bDue;
+        });
       }
 
       setFilteredPayments(result);
