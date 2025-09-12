@@ -15,6 +15,7 @@ export type Payment = {
    payment_method: PaymentMethod;
    amount_payment: number;
    amount_paid: number;
+   amount_discount?: number;
    is_current: boolean;
    dueDate: Timestamp;
    paidDate: Timestamp;

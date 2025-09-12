@@ -260,9 +260,14 @@ export default function CustomerDashboard() {
                               <br/><span className='text-red-500 text-xs'>{payment.comments}</span>
                             </>
                           }
+                          {payment.amount_discount && 
+                            <>
+                              <br/><span className='text-green-500 text-xs'>You have a -${payment.amount_discount} discount on your ${payment.amount_payment} rent!</span>
+                            </>
+                          }
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          ${payment.amount_payment.toFixed(2)}
+                          ${(payment.amount_payment - (payment.amount_discount ? payment.amount_discount : 0)).toFixed(2)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {payment.dueDate && payment.dueDate.toDate().toLocaleDateString()}
@@ -342,7 +347,7 @@ export default function CustomerDashboard() {
       {showConfirmationModal &&
         <ConfirmationModal
         email={email}
-        payment={currentPayment?.amount_payment && currentPayment?.amount_payment || 0}
+        payment={currentPayment?.amount_payment && currentPayment?.amount_payment - (currentPayment.amount_discount ? currentPayment.amount_discount : 0) || 0}
         setPaymentProof={setPaymentProof}
         paymentProof={paymentProof}
         handleConfirm={handleConfirm}
