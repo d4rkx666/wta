@@ -5,7 +5,19 @@ import { RoomCard } from "./RoomCard";
 import { Property } from "@/types/property";
 import { Room } from "@/types/room";
 
-export default function ShowRoomCards({showNotAvailable, properties, rooms}:{showNotAvailable:boolean, properties?:Property[], rooms?:Room[]}) {
+export default function ShowRoomCards(
+   {
+      showNotAvailable,
+      frontPage,
+      properties,
+      rooms
+
+   }:{
+      showNotAvailable:boolean,
+      frontPage?:boolean,
+      properties?:Property[],
+      rooms?:Room[]
+   }) {
 
    /* eslint-disable */
    let loadingData = false;
@@ -18,6 +30,9 @@ export default function ShowRoomCards({showNotAvailable, properties, rooms}:{sho
    if(!rooms){
       const {data, loading} = useLiveRooms();
       rooms = data;
+      if(frontPage){
+         rooms = data.slice(0,3);
+      }
       loadingData = loading;
    }
    /* eslint-enable */

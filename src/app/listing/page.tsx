@@ -14,6 +14,10 @@ const RoomListing = () => {
    const [selectedNeighborhoods, setSelectedNeighborhoods] = useState<string[]>([]);
    const [hasPrivateWashroom, setHasPrivateWashroom] = useState<boolean | null>(null);
 
+   // Pagination state
+   const [currentPage, setCurrentPage] = useState(1);
+   const [roomsPerPage] = useState(6);
+
    const { data: rooms, loading: loadingRooms } = useLiveRooms();
    const { data: properties, loading: loadingProperties } = useLiveDocuments();
 
@@ -39,6 +43,72 @@ const RoomListing = () => {
 
       return true;
    }) : [];
+
+   // Pagination logic
+   const indexOfLastRoom = currentPage * roomsPerPage;
+   const indexOfFirstRoom = indexOfLastRoom - roomsPerPage;
+   const currentRooms = filteredRooms.slice(indexOfFirstRoom, indexOfLastRoom);
+   const totalPages = Math.ceil(filteredRooms.length / roomsPerPage);
+
+   // Reset to page 1 when filters change
+   useEffect(() => {
+      setCurrentPage(1);
+   }, [currentPriceRange, selectedNeighborhoods, hasPrivateWashroom, onlyAvailable]);
+
+
+   // Pagination controls
+   const goToNextPage = () => {
+      setCurrentPage(prev => Math.min(prev + 1, totalPages));
+   };
+
+   const goToPrevPage = () => {
+      setCurrentPage(prev => Math.max(prev - 1, 1));
+   };
+
+   const goToPage = (pageNumber: number) => {
+      setCurrentPage(Math.max(1, Math.min(pageNumber, totalPages)));
+   };
+
+   // Generate page numbers to display
+   const getPageNumbers = () => {
+      const pageNumbers = [];
+      const maxVisiblePages = 5;
+      
+      if (totalPages <= maxVisiblePages) {
+         // Show all pages if total pages is less than max visible
+         for (let i = 1; i <= totalPages; i++) {
+            pageNumbers.push(i);
+         }
+      } else {
+         // Show limited pages with ellipsis
+         if (currentPage <= 3) {
+            // Near the start
+            for (let i = 1; i <= 4; i++) {
+               pageNumbers.push(i);
+            }
+            pageNumbers.push('...');
+            pageNumbers.push(totalPages);
+         } else if (currentPage >= totalPages - 2) {
+            // Near the end
+            pageNumbers.push(1);
+            pageNumbers.push('...');
+            for (let i = totalPages - 3; i <= totalPages; i++) {
+               pageNumbers.push(i);
+            }
+         } else {
+            // In the middle
+            pageNumbers.push(1);
+            pageNumbers.push('...');
+            for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+               pageNumbers.push(i);
+            }
+            pageNumbers.push('...');
+            pageNumbers.push(totalPages);
+         }
+      }
+      
+      return pageNumbers;
+   };
 
    useEffect(() => {
       const cheapestPrice = rooms.reduce((minPrice, currentItem) => {
@@ -162,13 +232,14 @@ const RoomListing = () => {
                {filteredRooms.length} {filteredRooms.length === 1 ? 'Room' : 'Rooms'} Available
             </h3>
             <div className="text-gray-600">
-               Showing {filteredRooms.length} of {rooms.length} results
+               Showing {Math.min(indexOfFirstRoom + 1, filteredRooms.length)}-{Math.min(indexOfLastRoom, filteredRooms.length)} of {filteredRooms.length} results
+               {totalPages > 1 && ` • Page ${currentPage} of ${totalPages}`}
             </div>
          </div>
 
          {/* Room Cards Grid */}
-         {filteredRooms.length > 0 ? (
-            <ShowRoomCards rooms={filteredRooms} showNotAvailable={true} />
+         {currentRooms.length > 0 ? (
+            <ShowRoomCards rooms={currentRooms} showNotAvailable={true} />
          ) : (
             <div className="bg-white rounded-xl shadow-md p-8 text-center">
                <svg
@@ -202,21 +273,48 @@ const RoomListing = () => {
             </div>
          )}
 
-         {/* Pagination - would be implemented with real data */}
-         {filteredRooms.length > 0 && (
+         {/* Pagination */}
+         {totalPages > 1 && (
             <div className="flex justify-center mt-8">
                <nav className="flex items-center space-x-2">
-                  <button className="px-3 py-1 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">
+                  <button 
+                     onClick={goToPrevPage}
+                     disabled={currentPage === 1}
+                     className={`px-3 py-1 rounded-lg ${
+                        currentPage === 1 
+                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                     }`}
+                  >
                      Previous
                   </button>
-                  <button className="px-3 py-1 rounded-lg bg-blue-600 text-white">1</button>
-                  <button className="px-3 py-1 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">
-                     2
-                  </button>
-                  <button className="px-3 py-1 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">
-                     3
-                  </button>
-                  <button className="px-3 py-1 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200">
+                  
+                  {getPageNumbers().map((page, index) => (
+                     <button
+                        key={index}
+                        onClick={() => typeof page === 'number' ? goToPage(page) : null}
+                        className={`px-3 py-1 rounded-lg ${
+                           page === currentPage
+                              ? 'bg-blue-600 text-white'
+                              : typeof page === 'number'
+                                 ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                 : 'bg-transparent text-gray-400 cursor-default'
+                        }`}
+                        disabled={page === '...'}
+                     >
+                        {page}
+                     </button>
+                  ))}
+                  
+                  <button 
+                     onClick={goToNextPage}
+                     disabled={currentPage === totalPages}
+                     className={`px-3 py-1 rounded-lg ${
+                        currentPage === totalPages 
+                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                     }`}
+                  >
                      Next
                   </button>
                </nav>
