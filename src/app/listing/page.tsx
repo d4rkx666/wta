@@ -26,7 +26,7 @@ const RoomListing = () => {
    // Filter rooms based on selected filters
    const filteredRooms = rooms ? rooms.filter(room => {
       // Price range filter
-      if (room.price < currentPriceRange[0]) return false;
+      if (room.price > currentPriceRange[0]) return false;
 
       // Private washroom filter
       if (hasPrivateWashroom !== null && room.private_washroom !== hasPrivateWashroom) return false;
