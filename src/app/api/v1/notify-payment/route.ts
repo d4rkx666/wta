@@ -114,7 +114,7 @@ try {
   }
 }
 
-export async function deleteMultiCloudinaryFiles(main_folder:string):Promise<string>{
+async function deleteMultiCloudinaryFiles(main_folder:string):Promise<string>{
   console.log("deleting files")
 
   const result = await cloudinary.api.delete_resources_by_prefix(`${main_folder}/`, {
