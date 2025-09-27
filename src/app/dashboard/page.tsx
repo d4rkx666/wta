@@ -22,7 +22,7 @@ export default function CustomerDashboard() {
   const [messageType, setMessageType] = useState('maintenance');
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [currentPayment, setCurrentPayment] = useState<Payment>();
-  const [paymentProof, setPaymentProof] = useState<File | null>(null);
+  const [paymentProof, setPaymentProof] = useState<FileList | null>(null);
   const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
   const [balance, setBalance] = useState<number>(0);
   const [notified, setNotified] = useState(false);
@@ -97,14 +97,16 @@ export default function CustomerDashboard() {
   }, [contracts, paymentStatusFilter, notified]);
 
   const lastUpdate = useMemo(()=>{
-    const last = payments.reduce((latest, payment) => {return payment.paidDate ? payment.paidDate.toDate() > latest ? payment.paidDate.toDate() : latest : latest}, new Date(0));
-    return last;
+    if(payments.length > 0){
+      const last = payments.reduce((latest, payment) => {return payment.paidDate ? payment.paidDate.toDate() > latest ? payment.paidDate.toDate() : latest : latest}, new Date());
+      return last;
+    }
+    return null;
   },[payments]);
 
   const handleConfirm = async(email:string)=>{
     try{
       setLoading(true);
-      console.log(currentPayment)
       if(!currentPayment || !paymentProof){
         showNotification("error", "Something went wrong. Please check the form before submitting.")
         setLoading(false);
@@ -115,14 +117,20 @@ export default function CustomerDashboard() {
       currentPayment.e_transfer_email = email;
 
       formData.append("payment", JSON.stringify(currentPayment));
-      formData.append("proof", paymentProof)
+      formData.append("proofLength", paymentProof.length.toString())
+      for (let i = 0; i < paymentProof.length; i++) {
+        formData.append(`file_${i}`, paymentProof[i])
+      }
       
+      setNotified(false);
       const data = await notify_payment(formData);
       const resp = await data.json();
 
       if(resp.success){
         showNotification("success", "Notification sent. Your landlord is verifying your payment. Come back later to check your payment's status!")
         setShowConfirmationModal(false);
+        setPaymentProof(null);
+        setCurrentPayment(undefined);
         setNotified(true);
       }else{
         showNotification("error", "Something went wrong. Please try again. If the problem persists, please re-login.")
@@ -165,7 +173,9 @@ export default function CustomerDashboard() {
           <div className="p-6">
             <h2 className="text-lg font-semibold text-gray-700 mb-2">Your Current Balance</h2>
             <p className="text-3xl font-bold text-indigo-600">${balance.toFixed(2)}</p>
-            <p className="text-sm text-gray-500 mt-2">Last updated: {lastUpdate.toLocaleDateString()}</p>
+            {lastUpdate && 
+              <p className="text-sm text-gray-500 mt-2">Last updated: {lastUpdate.toLocaleDateString()}</p>
+            }
             <p className="text-xs text-yellow-600 mt-5">Avoid <span className='font-bold'>penalties</span> paying your rent and other payments <span className='font-bold'>on time</span>.</p>
             <p className="text-xs text-yellow-600/60">Penalty formula: <span className='font-bold'>Penalty * Day late</span> (e.g. 25 cad * 2 days late = <span className='font-bold'>50 cad of penalty</span>)</p>
           </div>
@@ -180,6 +190,7 @@ export default function CustomerDashboard() {
             Payments
           </button>
           <button
+            disabled
             onClick={() => setActiveTab('request')}
             className={`px-4 py-2 font-medium text-sm focus:outline-none ${activeTab === 'request' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
           >
@@ -287,7 +298,15 @@ export default function CustomerDashboard() {
                               Mark as Paid
                             </button>
                           ) : (
-                            <span className="text-gray-400">Paid on {payment.paidDate && payment.paidDate.toDate().toLocaleDateString()}</span>
+                            <>
+                              <span className="text-gray-400">Paid on {payment.paidDate && payment.paidDate.toDate().toLocaleDateString()}</span><br/>
+                              <button
+                                onClick={() => markAsPaid(payment.id, payment.contract_id)}
+                                className="text-indigo-600 hover:text-indigo-900 font-medium"
+                              >
+                                Fix Mark
+                              </button>
+                            </>
                           )}
                         </td>
                       </tr>

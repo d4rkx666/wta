@@ -3,6 +3,8 @@ import { firestoreService } from '@/lib/services/firestore-service';
 import { Payment } from '@/types/payment';
 import { NextResponse } from 'next/server';
 import { v2 as cloudinary, UploadApiOptions } from 'cloudinary';
+import { getSession } from '@/lib/auth';
+import { Contract } from '@/types/contract';
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -13,23 +15,63 @@ cloudinary.config({
 export async function POST(req: Request) {
   const formData = await req.formData();
 
+  // Check auth
+  const user = await getSession();
+  if(!user){
+    return NextResponse.json({ success: false, message: "User not authenticated" });
+  }
+
   const payment = JSON.parse(formData.getAll('payment')[0] as string) as Payment;
-  const proofFile = formData.getAll('proof')[0] as File
+  const proofLength = formData.getAll('proofLength')[0] as string;
 
   try {
-    // Inserting individually because we want to ONLY UPDATE, not insert in case payment.id is changed to another uniexistent one
-    await firestoreService.updateDocument("payments",payment.id,"e_transfer_email", payment.e_transfer_email ? payment.e_transfer_email : "" );
-    await firestoreService.updateDocument("payments",payment.id,"payment_method","E-Transfer");
-    await firestoreService.updateDocument("payments",payment.id,"amount_paid",payment.amount_payment);
-    await firestoreService.updateDocument("payments",payment.id,"paidDate", new Date(Date.now()));
-    await firestoreService.updateDocument("payments",payment.id,"status", "Marked");
 
-    const proof_image_id = await insertFile(proofFile, payment.contract_id);
-    if(proof_image_id){
-      await firestoreService.updateDocument("payments",payment.id,"proof_img_id", proof_image_id);
+    const currentContract:Partial<Contract | null> = await firestoreService.getDocument("contracts",payment.contract_id) as Contract;
+
+    // Validate the contract belongs to the tenant
+    if(currentContract && currentContract.tenant_id === user.uid){
+
+      // Inserting individually because we want to ONLY UPDATE, not insert in case payment.id is changed to another uniexistent one
+      const paymentToUpdate:Partial<Payment> = {
+        id: payment.id,
+        e_transfer_email: payment.e_transfer_email ? payment.e_transfer_email : "",
+        payment_method: "E-Transfer",
+        amount_paid: payment.amount_payment,
+        status: "Marked"
+      };
+
+      await firestoreService.setDocument("payments", payment.id, paymentToUpdate);
+      await firestoreService.updateDocument("payments",payment.id,"paidDate", new Date(Date.now()));
+
+      const filesToInsert = [];
+      if(!isNaN(Number(proofLength))){
+        // delete previous images if exist
+        const path = `${currentContract.tenant_id}/${payment.contract_id}/PAYMENT_PROOF/${payment.id}`;
+        if(payment.proof_img_id){
+          await deleteMultiCloudinaryFiles(path)
+        }
+
+        for (let i = 0; i < Number(proofLength); i++) {
+          const file = formData.getAll(`file_${i}`)[0] as File;
+
+          if(file.name){
+            const proof_image_id = await insertFile(file, path);
+            if(proof_image_id){
+              filesToInsert.push(proof_image_id);
+            }
+          }
+        }
+      }
+      
+      if(filesToInsert.length > 0){
+        console.log("inserting", filesToInsert)
+        await firestoreService.updateDocument("payments",payment.id,"proof_img_id", filesToInsert);
+      }
+      return NextResponse.json({ success: true });
+    }else{
+      return NextResponse.json({ success: false, details: "Authentication failed."});
     }
-
-    return NextResponse.json({ success: true });
+    
   } catch (error) {
     return NextResponse.json(
       { error: String(error) },
@@ -70,4 +112,21 @@ try {
     console.log(error);
     return null;
   }
+}
+
+export async function deleteMultiCloudinaryFiles(main_folder:string):Promise<string>{
+  console.log("deleting files")
+
+  const result = await cloudinary.api.delete_resources_by_prefix(`${main_folder}/`, {
+    type: 'private',
+    resource_type: 'image'
+  });
+
+  console.log("trying to delete folder: ", main_folder)
+  const resultFolder = await cloudinary.api.delete_folder(main_folder);
+
+  console.log("delete result", result)
+  console.log("delete folder", resultFolder)
+
+  return result;
 }

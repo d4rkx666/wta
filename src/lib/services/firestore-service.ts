@@ -1,12 +1,11 @@
 import { adminDb } from '../firebase/admin';
-import { DocumentData } from 'firebase-admin/firestore';
 
 /* eslint-disable */
 class FirestoreService {
-  async getDocument(collection: string, docId: string): Promise<DocumentData | null> {
+  async getDocument(collection: string, docId: string): Promise<any | null> {
     const docRef = adminDb.collection(collection).doc(docId);
     const doc = await docRef.get();
-    return doc.exists? doc : null;
+    return doc.exists? doc.data() : null;
   }
 
   async setDocument(collection: string, docId: string, data: any): Promise<void> {

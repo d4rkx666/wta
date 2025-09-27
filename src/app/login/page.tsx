@@ -28,13 +28,14 @@ const LoginPage = () => {
           window.location.href = "/dashboard";
         } else {
           setError('Email or password incorrect. Please try again.');
+          setIsLoading(false);
         }
       }).catch(()=>{
         setError("Email or password incorrect. Please try again.")
+        setIsLoading(false);
       });
     } catch (err) {
       setError(String(err));
-    } finally {
       setIsLoading(false);
     }
   };

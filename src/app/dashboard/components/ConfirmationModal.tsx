@@ -1,15 +1,74 @@
 import { DocumentTextIcon } from "@heroicons/react/24/outline";
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
-function ConfirmationModal({ email, payment, setPaymentProof, paymentProof, loading, handleConfirm, setShowConfirmationModal }: { email: string, payment: number, setPaymentProof: Dispatch<SetStateAction<File | null>>, paymentProof: File | null, loading: boolean, handleConfirm: (email: string) => void, setShowConfirmationModal: Dispatch<SetStateAction<boolean>> }) {
+function ConfirmationModal(
+   {
+      email,
+      payment,
+      setPaymentProof,
+      paymentProof,
+      loading,
+      handleConfirm,
+      setShowConfirmationModal
+   }: {
+      email: string,
+      payment: number,
+      setPaymentProof: Dispatch<SetStateAction<FileList | null>>,
+      paymentProof: FileList | null,
+      loading: boolean,
+      handleConfirm: (email: string) => void,
+      setShowConfirmationModal: Dispatch<SetStateAction<boolean>> 
+   }) {
    const [selectedEmail, setSelectedEmail] = useState(email);
    const [isDefaultSelected, setIsDefaultSeleted] = useState(true);
    const [error, setError] = useState("");
 
+   const [totalFilesSize, setTotalFilesSize] = useState(0);
+   const [filesProofName, setFilesProofName] = useState<string[]>([]);
+   
    function validateEmail(email: string) {
       const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       return regex.test(email);
    }
+
+   const validate = ()=>{
+      if (selectedEmail != "") {
+         if (validateEmail(selectedEmail)) {
+            if(paymentProof){
+               if(paymentProof.length < 4){
+                  if(totalFilesSize <= 4000){
+                     handleConfirm(selectedEmail)
+                  }else{
+                     setError(`You are allowed to upload up to 4MB. ${(totalFilesSize / 1000).toFixed(1)}MB were detected.`)
+                  }
+               }else{
+                  setError("You can attach up to 3 screenshots.")
+               }
+            }else{
+               setError("Please attach the payment proof.")
+            }
+         } else {
+            setError("Please provide a valid email.");
+         }
+      } else {
+         setError("Please provide an email.");
+      }
+   }
+
+   useEffect(()=>{
+      if(paymentProof && paymentProof.length > 0){
+         const html = [];
+         let totalSize = 0;
+         for (let i = 0; i < paymentProof.length; i++) {
+            const file = paymentProof[i];
+            totalSize += paymentProof[i].size;
+            html.push(file.name);
+         }
+         setFilesProofName(html);
+         setTotalFilesSize(totalSize / 1000)
+      }
+   },[paymentProof])
+
 
    return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 ">
@@ -88,17 +147,24 @@ function ConfirmationModal({ email, payment, setPaymentProof, paymentProof, load
                         <label className="flex flex-col items-center justify-center w-full p-2 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
                            <div className="flex flex-col items-center justify-center pt-2 pb-3">
                               <DocumentTextIcon className="h-8 w-8 text-gray-400" />
-                              <p className="text-xs text-gray-500 mt-2">
-                                 {paymentProof ? paymentProof.name : "Click to upload payment screenshot"}
-                              </p>
+                              <div className="text-xs text-gray-500 mt-2">
+                                 {paymentProof ? (
+                                    filesProofName.map((f,i)=>{
+                                       return <p key={i}>{f}</p>;
+                                    })
+                                 ):(
+                                    "Click to upload payment screenshot"
+                                 )}
+                              </div>
                            </div>
                            <input
                               id="paymentProof"
                               name="paymentProof"
                               type="file"
                               accept="image/*"
+                              multiple
                               className="hidden"
-                              onChange={(e) => setPaymentProof(e.target.files?.[0] || null)}
+                              onChange={(e) => setPaymentProof(e.target.files || null)}
                            />
                         </label>
                      </div>
@@ -121,21 +187,7 @@ function ConfirmationModal({ email, payment, setPaymentProof, paymentProof, load
                   </button>
                   <button
                      disabled={loading}
-                     onClick={() => {
-                        if (selectedEmail != "") {
-                           if (validateEmail(selectedEmail)) {
-                              if(paymentProof){
-                                 handleConfirm(selectedEmail)
-                              }else{
-                                 setError("Please attach the payment proof.")
-                              }
-                           } else {
-                              setError("Please provide a valid email.");
-                           }
-                        } else {
-                           setError("Please provide an email.");
-                        }
-                     }}
+                     onClick={validate}
                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300"
                   >
                      {loading ? "Notifying your landlord..." : "Confirm Payment"}
