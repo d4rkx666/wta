@@ -254,13 +254,13 @@ export default function CustomerDashboard() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredPayments.map((payment) => {
+                    {filteredPayments.map((payment, i) => {
                     let bill = undefined;
                     if (payment.bill_id){
                       bill = bills.find(bill=>bill.id === payment.bill_id);
                     }
                     return(
-                      <tr key={payment.id}>
+                      <tr key={i}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {payment.type.replace(/^(\w)/, (match) => match.toUpperCase())}
                           {(payment.type === "bills" && bill) &&
